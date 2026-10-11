@@ -12,7 +12,8 @@ import {
 } from "react"
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion"
 import { wedding, hasBankDetails } from "@/data/wedding"
-import { groupAccountNumber } from "@/lib/format"
+import { groupAccountNumber, naira } from "@/lib/format"
+import { record } from "@/lib/record"
 import CopyRow from "./CopyRow"
 import Ornament from "@/components/motion/Ornament"
 
@@ -23,10 +24,15 @@ import Ornament from "@/components/motion/Ornament"
  * moved? The answer is two. Open the sheet, tap copy on the account number.
  * Everything else here is supporting material.
  *
- * Nothing a guest types is stored or transmitted. There is no payment
- * processor. The site's only job is to hand over an account number cleanly and
- * then get out of the way.
+ * There is no payment processor. The site's job is to hand over an account
+ * number cleanly and then get out of the way. The one thing it keeps is the
+ * name, and the amount if given, of a guest who says they have sent a gift -
+ * noted in the couple's sheet so they have a list to check against the bank.
  */
+
+const FIELD =
+  "w-full rounded-lg border border-blush-200 bg-ivory px-4 py-3 font-ui text-[15px] text-ink " +
+  "transition-colors placeholder:text-muted/60 hover:border-gold/50 focus:border-gold"
 
 type GiftSheetContext = { open: () => void }
 
@@ -124,8 +130,15 @@ function Sheet({
   panelRef: React.RefObject<HTMLDivElement | null>
   reduced: boolean
 }) {
+  const [name, setName] = useState("")
+  const [amount, setAmount] = useState("")
+
   const names = `${wedding.couple.first} and ${wedding.couple.second}`
-  const message = `Hello! I have just sent a gift to bless ${names}. My name is `
+  const giver = name.trim()
+  const sum = Number(amount.replace(/[^0-9]/g, "")) || null
+  const ready = giver.length >= 2
+
+  const message = `Hello! I have just sent a gift${sum ? ` of ${naira(sum)}` : ""} to bless ${names}. My name is ${giver}.`
   const whatsapp = `https://wa.me/${wedding.bank.contact.number}?text=${encodeURIComponent(message)}`
 
   return (
@@ -251,11 +264,45 @@ function Sheet({
         {hasBankDetails && (
           <>
             {/* ── Telling the couple ─────────────────────────────────────────── */}
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              <div>
+                <label htmlFor="gift-name" className="eyebrow mb-2 block">
+                  Your name
+                </label>
+                <input
+                  id="gift-name"
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  autoComplete="name"
+                  className={FIELD}
+                />
+              </div>
+              <div>
+                <label htmlFor="gift-amount" className="eyebrow mb-2 block">
+                  Amount <span className="normal-case tracking-normal">(optional)</span>
+                </label>
+                <input
+                  id="gift-amount"
+                  type="text"
+                  inputMode="numeric"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  placeholder="₦"
+                  className={`${FIELD} tabular`}
+                />
+              </div>
+            </div>
+
             <a
-              href={whatsapp}
+              href={ready ? whatsapp : undefined}
+              onClick={ready ? () => record({ type: "gift", name: giver, amount: sum }) : undefined}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-6 flex w-full items-center justify-center gap-2.5 rounded-full bg-wine px-6 py-4 font-ui text-[12px] font-medium uppercase tracking-[0.16em] text-ivory transition-colors hover:bg-wine-deep"
+              aria-disabled={!ready}
+              className={`mt-4 flex w-full items-center justify-center gap-2.5 rounded-full bg-wine px-6 py-4 font-ui text-[12px] font-medium uppercase tracking-[0.16em] text-ivory transition-colors hover:bg-wine-deep ${
+                ready ? "" : "pointer-events-none opacity-50"
+              }`}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                 <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2Zm5.8 14.13c-.25.69-1.43 1.32-1.99 1.4-.53.08-1.17.11-1.89-.12-.44-.14-1-.32-1.72-.63-3.02-1.3-4.99-4.34-5.14-4.54-.15-.2-1.23-1.63-1.23-3.11s.78-2.21 1.05-2.51c.28-.3.6-.38.8-.38.2 0 .4 0 .58.01.18 0 .43-.07.68.52.25.6.85 2.08.93 2.23.07.15.12.33.02.53-.1.2-.15.32-.3.5-.15.17-.31.39-.44.52-.15.15-.3.31-.13.61.17.3.75 1.24 1.61 2.01 1.11.99 2.04 1.29 2.34 1.44.3.15.47.13.65-.08.17-.2.75-.87.95-1.17.2-.3.4-.25.67-.15.28.1 1.75.83 2.05.98.3.15.5.22.57.35.07.12.07.72-.18 1.41Z" />
@@ -263,7 +310,9 @@ function Sheet({
               I have sent my gift
             </a>
             <p className="mt-2 text-center text-[13px] text-muted">
-              This opens WhatsApp so {wedding.couple.first} knows your gift arrived.
+              {ready
+                ? `This opens WhatsApp so ${wedding.couple.first} knows your gift arrived.`
+                : `Add your name, then tell ${wedding.couple.first} your gift is on its way.`}
             </p>
 
             {/* ── The notice that costs one sentence and saves a lot ─────────── */}

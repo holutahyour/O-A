@@ -3,15 +3,17 @@
 import { useState } from "react"
 import { wedding } from "@/data/wedding"
 import { naira } from "@/lib/format"
+import { record } from "@/lib/record"
 import Bloom from "@/components/motion/Bloom"
 import SectionHeading from "@/components/ui/SectionHeading"
 
 /**
  * Gele and fila requests.
  *
- * Nothing is stored and nothing is paid for here. A guest picks how many of
- * each they want, and the button opens WhatsApp on the primary line with the
- * request already written - the family take it from there.
+ * Nothing is paid for here. A guest picks how many of each they want, and the
+ * button opens WhatsApp on the primary line with the request already written -
+ * the family take it from there. The request is also noted in the sheet, so
+ * there is a list to work from that does not depend on scrolling a chat.
  */
 
 const STEP =
@@ -46,7 +48,18 @@ Total: ${naira(total)}
 Name: ${name.trim()}`
 
   const href = `https://wa.me/${wedding.whatsapp.number}?text=${encodeURIComponent(text)}`
-  const ready = chosen.length > 0
+  const named = name.trim().length >= 2
+  const ready = chosen.length > 0 && named
+
+  function note() {
+    record({
+      type: "headwear",
+      name: name.trim(),
+      gele: counts.gele ?? 0,
+      fila: counts.fila ?? 0,
+      total,
+    })
+  }
 
   return (
     <section id="headwear" className="section relative">
@@ -130,9 +143,14 @@ Name: ${name.trim()}`
           />
 
           <p className="tabular mt-6 text-center font-ui text-[15px] text-ink" aria-live="polite">
-            {ready ? (
+            {chosen.length > 0 ? (
               <>
                 Total <span className="font-medium text-wine">{naira(total)}</span>
+                {!named && (
+                  <span className="mt-1 block text-muted">
+                    Add your name to send the request.
+                  </span>
+                )}
               </>
             ) : (
               <span className="text-muted">Choose at least one to send a request.</span>
@@ -141,6 +159,7 @@ Name: ${name.trim()}`
 
           <a
             href={ready ? href : undefined}
+            onClick={ready ? note : undefined}
             target="_blank"
             rel="noopener noreferrer"
             aria-disabled={!ready}

@@ -41,6 +41,19 @@ function reply(body) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
+// The Gifts and Headwear tabs are made, with their headers, the first time
+// something is recorded in them.
+function tab(name, headers) {
+  var book = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = book.getSheetByName(name);
+  if (!sheet) {
+    sheet = book.insertSheet(name);
+    sheet.appendRow(headers);
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+
 function doPost(e) {
   // One submission at a time, so two sent together cannot both slip past
   // the duplicate check.
@@ -48,8 +61,22 @@ function doPost(e) {
   try {
     lock.waitLock(8000);
 
-    var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('RSVPs');
     var data = JSON.parse(e.postData.contents);
+    var at = data.submittedAt || new Date().toISOString();
+
+    if (data.type === 'gift') {
+      tab('Gifts', ['Submitted at', 'Name', 'Amount said', 'Seen in bank'])
+        .appendRow([at, data.name || '', data.amount || '', '']);
+      return reply({ ok: true });
+    }
+
+    if (data.type === 'headwear') {
+      tab('Headwear', ['Submitted at', 'Name', 'Gele', 'Fila', 'Total', 'Paid', 'Collected'])
+        .appendRow([at, data.name || '', data.gele || 0, data.fila || 0, data.total || 0, '', '']);
+      return reply({ ok: true });
+    }
+
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('RSVPs');
 
     var phone = phoneKey(data.phone || '');
     var email = emailKey(data.email || '');
@@ -66,7 +93,7 @@ function doPost(e) {
     }
 
     sheet.appendRow([
-      data.submittedAt || new Date().toISOString(),
+      at,
       data.name || '',
       data.phone || '',
       data.email || '',
@@ -85,6 +112,25 @@ function doPost(e) {
 ```
 
 Save it.
+
+### Gifts and headwear
+
+The same script keeps two more lists, each in its own tab. You do not need to
+make these tabs — the script adds them, with headers, the first time they are
+needed.
+
+| Tab | Written when a guest… | Columns |
+|---|---|---|
+| `Gifts` | presses **I have sent my gift** | Submitted at, Name, Amount said, Seen in bank |
+| `Headwear` | presses **Request on WhatsApp** for a gele or fila | Submitted at, Name, Gele, Fila, Total, Paid, Collected |
+
+**Seen in bank**, **Paid** and **Collected** are left empty for you to fill in.
+That matters: a row is only what the guest said. A `Gifts` row is not a bank
+alert, and the amount is whatever they typed, if anything. Check each one
+against the account before ticking it off.
+
+A row is written as WhatsApp opens, so a guest who presses the button and then
+does not send the message is still on the list.
 
 ### Duplicates
 
