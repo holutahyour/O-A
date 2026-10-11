@@ -21,6 +21,33 @@ type Payload = {
   requestedCard: boolean
 }
 
+/**
+ * Phones and emails this server has already taken an RSVP from, so a repeat is
+ * turned away without a trip to the sheet.
+ *
+ * This is a shortcut, not the record. It empties whenever the server restarts
+ * and is not shared between instances, so the Apps Script makes the same check
+ * against the sheet itself - that one is the check that counts.
+ */
+const seen = new Set<string>()
+
+/**
+ * The same guest writes their number as 0807…, +234 807… or 234807…, so a
+ * phone is compared on its last ten digits. The Apps Script uses the same rule.
+ */
+function keysFor(data: Payload): string[] {
+  const keys = [`phone:${data.phone.replace(/[^0-9]/g, "").slice(-10)}`]
+  if (data.email) keys.push(`email:${data.email.toLowerCase()}`)
+  return keys
+}
+
+function duplicate() {
+  return NextResponse.json(
+    { ok: false, duplicate: true, error: "Already responded." },
+    { status: 409 },
+  )
+}
+
 function validate(body: unknown): { ok: true; data: Payload } | { ok: false; error: string } {
   if (typeof body !== "object" || body === null) {
     return { ok: false, error: "Malformed request." }
@@ -75,6 +102,9 @@ export async function POST(request: Request) {
     )
   }
 
+  const keys = keysFor(result.data)
+  if (keys.some((key) => seen.has(key))) return duplicate()
+
   try {
     const upstream = await fetch(endpoint, {
       method: "POST",
@@ -88,6 +118,23 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, error: "Could not save." }, { status: 502 })
     }
 
+    // The script answers 200 even when it turns a row away, so the body is
+    // what says whether the RSVP was saved.
+    const saved = (await upstream.json().catch(() => null)) as {
+      ok?: boolean
+      duplicate?: boolean
+    } | null
+
+    if (saved?.duplicate) {
+      keys.forEach((key) => seen.add(key))
+      return duplicate()
+    }
+    if (!saved?.ok) {
+      console.error("[rsvp] upstream did not save", saved)
+      return NextResponse.json({ ok: false, error: "Could not save." }, { status: 502 })
+    }
+
+    keys.forEach((key) => seen.add(key))
     return NextResponse.json({ ok: true })
   } catch (error) {
     console.error("[rsvp] upstream request failed", error)

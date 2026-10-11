@@ -62,7 +62,9 @@ export default function Rsvp() {
   const [message, setMessage] = useState("")
 
   const [errors, setErrors] = useState<Errors>({})
-  const [status, setStatus] = useState<"idle" | "sending" | "sent" | "failed">("idle")
+  const [status, setStatus] = useState<
+    "idle" | "sending" | "sent" | "failed" | "duplicate"
+  >("idle")
 
   /**
    * Which button was pressed. The ref is what the submit handler reads - a
@@ -142,7 +144,7 @@ export default function Rsvp() {
         setWaHref(null)
       }
 
-      setStatus(ok ? "sent" : "failed")
+      setStatus(ok ? "sent" : data.duplicate ? "duplicate" : "failed")
     } catch {
       setStatus("failed")
     }
@@ -312,12 +314,14 @@ export default function Rsvp() {
               </p>
             </div>
 
-            {status === "failed" && (
+            {(status === "failed" || status === "duplicate") && (
               <div
                 role="alert"
                 className="rounded-lg border border-wine/30 bg-wine/5 px-4 py-3.5 text-[14px] leading-relaxed text-ink"
               >
-                We could not send that just now. Please try again, or call{" "}
+                {status === "duplicate"
+                  ? "We already have an RSVP with this phone number or email, so you are on the list. To change it, call "
+                  : "We could not send that just now. Please try again, or call "}
                 {wedding.rsvpPhones.map((p, i) => (
                   <span key={p.tel}>
                     {i > 0 && " or "}
@@ -328,8 +332,8 @@ export default function Rsvp() {
                       {p.display}
                     </a>
                   </span>
-                ))}{" "}
-                and we will add you by hand.
+                ))}
+                {status === "duplicate" ? "." : " and we will add you by hand."}
               </div>
             )}
 
