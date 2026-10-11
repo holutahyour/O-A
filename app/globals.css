@@ -1,0 +1,174 @@
+@import "tailwindcss";
+
+/* ───────────────────────────────────────────────────────────────────────────
+   Design tokens - Onion Pink & Lilac
+   Taken from the printed invitation card, not invented.
+
+   The token names are roles carried over from the first build of this site,
+   not literal colours: "blush" is the pink family, "champagne" the lilac
+   secondary, "gold" the orchid hairline accent, "wine" the deep plum used
+   for headings and buttons.
+   ─────────────────────────────────────────────────────────────────────────── */
+@theme {
+  --color-ivory: #fffafd;
+  --color-blush-50: #fbeef6;
+  --color-blush-200: #f1d5e6;
+  --color-blush-400: #c77fa2;
+  --color-champagne: #e9daf3;
+  --color-champagne-deep: #cfb4e2;
+  --color-gold: #b0629c;
+  --color-gold-soft: #d6a6c9;
+  --color-wine: #5c2350;
+  --color-wine-deep: #3d1636;
+  --color-ink: #33222f;
+  --color-muted: #7d6679;
+  --color-sage: #8a9a6b;
+
+  --font-display: var(--font-gilda), Georgia, "Times New Roman", serif;
+  --font-script: var(--font-italianno), "Segoe Script", cursive;
+  --font-ui: var(--font-jost), ui-sans-serif, system-ui, -apple-system, sans-serif;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   Base
+   ─────────────────────────────────────────────────────────────────────────── */
+@layer base {
+  html {
+    scroll-behaviour: smooth;
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--color-ivory);
+    color: var(--color-ink);
+    font-family: var(--font-ui);
+    font-size: clamp(15px, 3.6vw, 17px);
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    overflow-x: hidden;
+  }
+
+  /* Anchors land below the sticky header rather than under it. */
+  section[id] {
+    scroll-margin-top: 5.5rem;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    font-weight: 300;
+    line-height: 1.12;
+    letter-spacing: -0.01em;
+    color: var(--color-wine);
+  }
+
+  ::selection {
+    background: var(--color-blush-200);
+    color: var(--color-wine-deep);
+  }
+
+  /* One visible focus treatment, everywhere, in orchid. */
+  :focus-visible {
+    outline: 2px solid var(--color-gold);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  /* Account numbers and countdown digits must not wobble as they change. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   Repeated pieces
+   ─────────────────────────────────────────────────────────────────────────── */
+@layer components {
+  .eyebrow {
+    font-family: var(--font-ui);
+    font-weight: 500;
+    font-size: clamp(10px, 2.4vw, 12px);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+  }
+
+  /* The display face has no italic of its own - see app/layout.tsx. */
+  .font-display.italic {
+    font-family: var(--font-cormorant), Georgia, "Times New Roman", serif;
+  }
+
+  .shell {
+    width: 100%;
+    max-width: 72rem;
+    margin-inline: auto;
+    padding-inline: clamp(1.25rem, 5vw, 2.5rem);
+  }
+
+  .section {
+    padding-block: clamp(4.5rem, 12vw, 8rem);
+  }
+
+  /* The pink and lilac wash used to separate bands without drawing a border. */
+  .wash {
+    background:
+      radial-gradient(ellipse 70% 60% at 15% 0%, var(--color-blush-50) 0%, transparent 70%),
+      radial-gradient(ellipse 60% 50% at 90% 100%, #f5edfb 0%, transparent 70%);
+  }
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   Motion - bokeh and bloom.
+   Deliberately NOT falling petals: that is the reference site's signature.
+   ─────────────────────────────────────────────────────────────────────────── */
+@keyframes bokehDrift {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0;
+  }
+  12% {
+    opacity: var(--bokeh-opacity, 0.2);
+  }
+  88% {
+    opacity: var(--bokeh-opacity, 0.2);
+  }
+  100% {
+    transform: translate3d(var(--bokeh-drift, 40px), -115vh, 0) scale(1.15);
+    opacity: 0;
+  }
+}
+
+.bokeh-mote {
+  position: absolute;
+  bottom: -20vh;
+  border-radius: 9999px;
+  pointer-events: none;
+  will-change: transform, opacity;
+  animation: bokehDrift var(--bokeh-duration, 60s) var(--bokeh-delay, 0s) linear infinite;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   Reduced motion - a hard requirement, not a nicety.
+   Bokeh disappears entirely; everything else settles instantly.
+   ─────────────────────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .bokeh-mote {
+    display: none;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

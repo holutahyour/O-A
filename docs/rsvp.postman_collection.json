@@ -1,0 +1,488 @@
+{
+  "info": {
+    "_postman_id": "8f2c41a6-3d57-4b19-9c8e-5a1e7b0d2f34",
+    "name": "A&O Wedding — RSVP",
+    "description": "Tests the RSVP path in two halves: the Google Apps Script web app on its own, then the site's /api/rsvp route that forwards to it. Run folder 1 first — if the script is broken, everything downstream lies about it.\n\nSET THESE FIRST (Collection → Variables → Current value):\n  baseUrl — the running site. Default http://localhost:3000\n  execUrl — the Apps Script web app URL, ending in /exec\n\nSee docs/APPS-SCRIPT.md for how to create and deploy the script.\n\nSTATUS CODES from app/api/rsvp/route.ts:\n  200  saved\n  400  payload failed validation\n  502  Apps Script unreachable, timed out, or returned non-2xx\n  503  RSVP_ENDPOINT is not set on the server",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "execUrl",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1 · Apps Script (direct)",
+      "description": "Bypasses the site entirely and posts the exact payload shape route.ts sends. Isolates Google-side problems from Next-side ones.",
+      "item": [
+        {
+          "name": "Append a row to the sheet",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var raw = pm.response.text();",
+                  "",
+                  "pm.test(\"HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response is JSON, not an HTML sign-in page\", function () {",
+                  "    pm.expect(raw.trim().charAt(0), \"Got HTML back. The deployment's 'Who has access' is probably 'Anyone with a Google account' — it must be 'Anyone'. Fix it under Deploy > Manage deployments, then publish a New version.\").to.not.eql(\"<\");",
+                  "});",
+                  "",
+                  "var body = null;",
+                  "try { body = JSON.parse(raw); } catch (e) { body = null; }",
+                  "",
+                  "pm.test(\"Script reported ok:true\", function () {",
+                  "    pm.expect(body, \"Body was not JSON: \" + raw.slice(0, 160)).to.not.eql(null);",
+                  "    pm.expect(body.ok, body && body.error ? \"Apps Script threw: \" + body.error + \"  (a null-sheet error means the tab is not named exactly 'RSVPs')\" : \"\").to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"submittedAt\": \"{{$isoTimestamp}}\",\n  \"name\": \"Postman Direct Test\",\n  \"phone\": \"08012345678\",\n  \"email\": \"test@example.com\",\n  \"attending\": \"Both\",\n  \"message\": \"Direct Apps Script test — safe to delete this row.\",\n  \"requestedCard\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{execUrl}}",
+              "host": [
+                "{{execUrl}}"
+              ]
+            },
+            "description": "Posts straight to the /exec URL. Postman follows the 302 to script.googleusercontent.com automatically.\n\nExpect {\"ok\":true} and a new row in the sheet. Note the script returns HTTP 200 even when it fails internally — the tests read the body, which is why they catch what a plain status check would miss."
+          }
+        }
+      ]
+    },
+    {
+      "name": "2 · Site route — happy path",
+      "description": "Posts to /api/rsvp exactly as the form does. Needs the dev server running and RSVP_ENDPOINT set in .env.local.",
+      "item": [
+        {
+          "name": "Send RSVP",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Not 503 — RSVP_ENDPOINT is set\", function () {",
+                  "    pm.expect(pm.response.code, \"503 means RSVP_ENDPOINT is missing or empty on the server. Add it to .env.local and restart next dev.\").to.not.eql(503);",
+                  "});",
+                  "",
+                  "pm.test(\"Not 502 — Apps Script reachable\", function () {",
+                  "    pm.expect(pm.response.code, \"502 means the route could not reach the Apps Script, it timed out at 10s, or it returned non-2xx. Run folder 1 to find out which.\").to.not.eql(502);",
+                  "});",
+                  "",
+                  "pm.test(\"HTTP 200 with ok:true\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().ok).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman RSVP Test\",\n  \"phone\": \"08012345678\",\n  \"email\": \"test@example.com\",\n  \"attending\": \"Both\",\n  \"message\": \"RSVP via the site route — safe to delete this row.\",\n  \"requestedCard\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/rsvp",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "rsvp"
+              ]
+            },
+            "description": "The 'Send RSVP' button. The route stamps submittedAt itself, so the client never sends it.\n\nColumn G (Requested card) should stay empty for this one."
+          }
+        },
+        {
+          "name": "Send and request access",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Not 503 — RSVP_ENDPOINT is set\", function () {",
+                  "    pm.expect(pm.response.code, \"503 means RSVP_ENDPOINT is missing or empty on the server. Add it to .env.local and restart next dev.\").to.not.eql(503);",
+                  "});",
+                  "",
+                  "pm.test(\"HTTP 200 with ok:true\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().ok).to.eql(true);",
+                  "});",
+                  "",
+                  "pm.test(\"Column G should read 'Yes' — check the sheet\", function () {",
+                  "    pm.expect(JSON.parse(pm.request.body.raw).requestedCard).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman Access Test\",\n  \"phone\": \"08012345678\",\n  \"email\": \"test@example.com\",\n  \"attending\": \"Both\",\n  \"message\": \"Access request via the site route — safe to delete this row.\",\n  \"requestedCard\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/rsvp",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "rsvp"
+              ]
+            },
+            "description": "The 'Send and request access' button — same payload, requestedCard true. On the site this also hands the guest the invitation card on the thank-you screen."
+          }
+        }
+      ]
+    },
+    {
+      "name": "3 · Site route — validation (expect 400)",
+      "description": "Validation runs before the RSVP_ENDPOINT check in route.ts, so every request in this folder passes even with no Google endpoint configured at all. Useful as a smoke test on its own.",
+      "item": [
+        {
+          "name": "Name too short",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", function () { pm.response.to.have.status(400); });",
+                  "pm.test(\"error: Invalid name.\", function () {",
+                  "    pm.expect(pm.response.json().error).to.eql(\"Invalid name.\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"A\",\n  \"phone\": \"08012345678\",\n  \"email\": \"\",\n  \"attending\": \"Both\",\n  \"message\": \"\",\n  \"requestedCard\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/rsvp",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "rsvp"
+              ]
+            },
+            "description": "Name must be 2–120 characters."
+          }
+        },
+        {
+          "name": "Phone too short",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", function () { pm.response.to.have.status(400); });",
+                  "pm.test(\"error: Invalid phone number.\", function () {",
+                  "    pm.expect(pm.response.json().error).to.eql(\"Invalid phone number.\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman Test\",\n  \"phone\": \"0801\",\n  \"email\": \"\",\n  \"attending\": \"Both\",\n  \"message\": \"\",\n  \"requestedCard\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/rsvp",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "rsvp"
+              ]
+            },
+            "description": "Needs at least 7 digits after stripping non-numerics, and at most 40 characters overall."
+          }
+        },
+        {
+          "name": "Invalid email",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", function () { pm.response.to.have.status(400); });",
+                  "pm.test(\"error: Invalid email address.\", function () {",
+                  "    pm.expect(pm.response.json().error).to.eql(\"Invalid email address.\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman Test\",\n  \"phone\": \"08012345678\",\n  \"email\": \"not-an-email\",\n  \"attending\": \"Both\",\n  \"message\": \"\",\n  \"requestedCard\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/rsvp",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "rsvp"
+              ]
+            },
+            "description": "Email is optional — an empty string passes. A non-empty one must look like an address."
+          }
+        },
+        {
+          "name": "Unknown attending value",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", function () { pm.response.to.have.status(400); });",
+                  "pm.test(\"error: Invalid attendance choice.\", function () {",
+                  "    pm.expect(pm.response.json().error).to.eql(\"Invalid attendance choice.\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman Test\",\n  \"phone\": \"08012345678\",\n  \"email\": \"\",\n  \"attending\": \"Maybe\",\n  \"message\": \"\",\n  \"requestedCard\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/rsvp",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "rsvp"
+              ]
+            },
+            "description": "Must be one of: Attending, Unable."
+          }
+        },
+        {
+          "name": "Message over 500 chars",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set(\"longMessage\", \"x\".repeat(501));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", function () { pm.response.to.have.status(400); });",
+                  "pm.test(\"error: Message is too long.\", function () {",
+                  "    pm.expect(pm.response.json().error).to.eql(\"Message is too long.\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman Test\",\n  \"phone\": \"08012345678\",\n  \"email\": \"\",\n  \"attending\": \"Both\",\n  \"message\": \"{{longMessage}}\",\n  \"requestedCard\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/rsvp",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "rsvp"
+              ]
+            },
+            "description": "The pre-request script builds a 501-character message. The textarea caps at 500 client-side; this proves the server enforces it too."
+          }
+        },
+        {
+          "name": "Malformed JSON",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", function () { pm.response.to.have.status(400); });",
+                  "pm.test(\"error: Malformed request.\", function () {",
+                  "    pm.expect(pm.response.json().error).to.eql(\"Malformed request.\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"name\": \"Truncated on purpose\",",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/rsvp",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "rsvp"
+              ]
+            },
+            "description": "Unparseable body — the route's request.json() catch returns 400 before any validation runs."
+          }
+        }
+      ]
+    }
+  ]
+}
