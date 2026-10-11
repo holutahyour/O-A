@@ -11,8 +11,15 @@ import { NextResponse } from "next/server"
  */
 
 type Entry =
-  | { type: "gift"; name: string; amount: number | null }
-  | { type: "headwear"; name: string; gele: number; fila: number; total: number }
+  | { type: "gift"; name: string; phone: string; amount: number | null }
+  | {
+      type: "headwear"
+      name: string
+      phone: string
+      gele: number
+      fila: number
+      total: number
+    }
 
 const MAX_EACH = 20
 const MAX_AMOUNT = 1_000_000_000
@@ -31,15 +38,21 @@ function validate(body: unknown): { ok: true; data: Entry } | { ok: false; error
   const name = String(raw.name ?? "").trim()
   if (name.length < 2 || name.length > 120) return { ok: false, error: "Invalid name." }
 
+  // The same rule as an RSVP, so a row here can be matched to one there.
+  const phone = String(raw.phone ?? "").trim()
+  if (phone.replace(/[^0-9]/g, "").length < 7 || phone.length > 40) {
+    return { ok: false, error: "Invalid phone number." }
+  }
+
   if (raw.type === "gift") {
     if (raw.amount === null || raw.amount === undefined || raw.amount === "") {
-      return { ok: true, data: { type: "gift", name, amount: null } }
+      return { ok: true, data: { type: "gift", name, phone, amount: null } }
     }
     const amount = Number(raw.amount)
     if (!Number.isFinite(amount) || amount <= 0 || amount > MAX_AMOUNT) {
       return { ok: false, error: "Invalid amount." }
     }
-    return { ok: true, data: { type: "gift", name, amount } }
+    return { ok: true, data: { type: "gift", name, phone, amount } }
   }
 
   if (raw.type === "headwear") {
@@ -52,7 +65,7 @@ function validate(body: unknown): { ok: true; data: Entry } | { ok: false; error
     if (!Number.isFinite(total) || total < 0 || total > MAX_AMOUNT) {
       return { ok: false, error: "Invalid total." }
     }
-    return { ok: true, data: { type: "headwear", name, gele, fila, total } }
+    return { ok: true, data: { type: "headwear", name, phone, gele, fila, total } }
   }
 
   return { ok: false, error: "Unknown record type." }

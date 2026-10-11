@@ -65,14 +65,14 @@ function doPost(e) {
     var at = data.submittedAt || new Date().toISOString();
 
     if (data.type === 'gift') {
-      tab('Gifts', ['Submitted at', 'Name', 'Amount said', 'Seen in bank'])
-        .appendRow([at, data.name || '', data.amount || '', '']);
+      tab('Gifts', ['Submitted at', 'Name', 'Phone', 'Amount said', 'Seen in bank'])
+        .appendRow([at, data.name || '', data.phone || '', data.amount || '', '']);
       return reply({ ok: true });
     }
 
     if (data.type === 'headwear') {
-      tab('Headwear', ['Submitted at', 'Name', 'Gele', 'Fila', 'Total', 'Paid', 'Collected'])
-        .appendRow([at, data.name || '', data.gele || 0, data.fila || 0, data.total || 0, '', '']);
+      tab('Headwear', ['Submitted at', 'Name', 'Phone', 'Gele', 'Fila', 'Total', 'Paid', 'Collected'])
+        .appendRow([at, data.name || '', data.phone || '', data.gele || 0, data.fila || 0, data.total || 0, '', '']);
       return reply({ ok: true });
     }
 
@@ -121,8 +121,16 @@ needed.
 
 | Tab | Written when a guest… | Columns |
 |---|---|---|
-| `Gifts` | presses **I have sent my gift** | Submitted at, Name, Amount said, Seen in bank |
-| `Headwear` | presses **Request on WhatsApp** for a gele or fila | Submitted at, Name, Gele, Fila, Total, Paid, Collected |
+| `Gifts` | presses **I have sent my gift** | Submitted at, Name, Phone, Amount said, Seen in bank |
+| `Headwear` | presses **Request on WhatsApp** for a gele or fila | Submitted at, Name, Phone, Gele, Fila, Total, Paid, Collected |
+
+**Phone** is the number the guest gave, held to the same rule as an RSVP, so a
+row here can be matched to their row in `RSVPs`.
+
+If either tab was made before the Phone column existed, the script will not
+add it for you — it only writes headers when it creates a tab. Insert a column
+after **Name** in each tab and head it `Phone`, or new rows will land one
+column out of step with the old headers.
 
 **Seen in bank**, **Paid** and **Collected** are left empty for you to fill in.
 That matters: a row is only what the guest said. A `Gifts` row is not a bank

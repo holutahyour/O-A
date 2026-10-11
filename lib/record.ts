@@ -9,8 +9,15 @@
  */
 
 export type RecordEntry =
-  | { type: "gift"; name: string; amount: number | null }
-  | { type: "headwear"; name: string; gele: number; fila: number; total: number }
+  | { type: "gift"; name: string; phone: string; amount: number | null }
+  | {
+      type: "headwear"
+      name: string
+      phone: string
+      gele: number
+      fila: number
+      total: number
+    }
 
 /** The last thing sent, so pressing the button twice does not write two rows. */
 let last = ""

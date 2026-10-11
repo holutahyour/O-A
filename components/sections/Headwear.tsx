@@ -1,8 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { wedding } from "@/data/wedding"
 import { naira } from "@/lib/format"
+import { isPhone, onGuestRemembered, recallGuest, rememberGuest } from "@/lib/guest"
 import { record } from "@/lib/record"
 import Bloom from "@/components/motion/Bloom"
 import SectionHeading from "@/components/ui/SectionHeading"
@@ -20,11 +21,28 @@ const STEP =
   "flex h-11 w-11 items-center justify-center rounded-full border border-gold/60 text-wine " +
   "transition-colors hover:border-gold hover:bg-champagne/30 disabled:pointer-events-none disabled:opacity-35"
 
+const FIELD =
+  "w-full rounded-lg border border-blush-200 bg-ivory px-4 py-3 font-ui text-[15px] text-ink " +
+  "transition-colors placeholder:text-muted/60 hover:border-gold/50 focus:border-gold"
+
 const MAX = 20
 
 export default function Headwear() {
   const [name, setName] = useState("")
+  const [phone, setPhone] = useState("")
   const [counts, setCounts] = useState<Record<string, number>>({})
+
+  // A guest who has already sent an RSVP or a gift is not asked twice. This
+  // section is on the page before they do either, so it listens for it too.
+  useEffect(() => {
+    function fill() {
+      const guest = recallGuest()
+      setName((current) => current || guest.name || "")
+      setPhone((current) => current || guest.phone || "")
+    }
+    fill()
+    return onGuestRemembered(fill)
+  }, [])
 
   if (wedding.headwear.length === 0) return null
 
@@ -45,16 +63,20 @@ export default function Headwear() {
 ${chosen.map((item) => `${item.name} x ${item.count} - ${naira(item.count * item.price)}`).join("\n")}
 
 Total: ${naira(total)}
-Name: ${name.trim()}`
+Name: ${name.trim()}
+Phone: ${phone.trim()}`
 
   const href = `https://wa.me/${wedding.whatsapp.number}?text=${encodeURIComponent(text)}`
   const named = name.trim().length >= 2
-  const ready = chosen.length > 0 && named
+  const reachable = isPhone(phone)
+  const ready = chosen.length > 0 && named && reachable
 
   function note() {
+    rememberGuest({ name, phone })
     record({
       type: "headwear",
       name: name.trim(),
+      phone: phone.trim(),
       gele: counts.gele ?? 0,
       fila: counts.fila ?? 0,
       total,
@@ -139,16 +161,29 @@ Name: ${name.trim()}`
             value={name}
             onChange={(e) => setName(e.target.value)}
             autoComplete="name"
-            className="w-full rounded-lg border border-blush-200 bg-ivory px-4 py-3 font-ui text-[15px] text-ink transition-colors placeholder:text-muted/60 hover:border-gold/50 focus:border-gold"
+            className={FIELD}
+          />
+
+          <label htmlFor="headwear-phone" className="eyebrow mb-2 mt-5 block">
+            Phone number
+          </label>
+          <input
+            id="headwear-phone"
+            type="tel"
+            inputMode="tel"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            autoComplete="tel"
+            className={FIELD}
           />
 
           <p className="tabular mt-6 text-center font-ui text-[15px] text-ink" aria-live="polite">
             {chosen.length > 0 ? (
               <>
                 Total <span className="font-medium text-wine">{naira(total)}</span>
-                {!named && (
+                {!(named && reachable) && (
                   <span className="mt-1 block text-muted">
-                    Add your name to send the request.
+                    Add your name and phone number to send the request.
                   </span>
                 )}
               </>

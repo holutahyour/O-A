@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react"
 import { wedding } from "@/data/wedding"
 import { dayAndMonth } from "@/lib/format"
+import { isPhone, onGuestRemembered, recallGuest, rememberGuest } from "@/lib/guest"
 import Bloom from "@/components/motion/Bloom"
 import Ornament from "@/components/motion/Ornament"
 import SectionHeading from "@/components/ui/SectionHeading"
@@ -61,6 +62,22 @@ export default function Rsvp() {
   const [attending, setAttending] = useState<Attending>("Attending")
   const [message, setMessage] = useState("")
 
+  /**
+   * Start from whatever this guest has already given the gift sheet or the
+   * headwear request. It waits for the browser because the server has no way
+   * of knowing, and it only ever fills a field the guest has left empty.
+   */
+  useEffect(() => {
+    function fill() {
+      const guest = recallGuest()
+      setName((current) => current || guest.name || "")
+      setPhone((current) => current || guest.phone || "")
+      setEmail((current) => current || guest.email || "")
+    }
+    fill()
+    return onGuestRemembered(fill)
+  }, [])
+
   const [errors, setErrors] = useState<Errors>({})
   const [status, setStatus] = useState<
     "idle" | "sending" | "sent" | "failed" | "duplicate"
@@ -96,7 +113,7 @@ export default function Rsvp() {
   function validate(): Errors {
     const next: Errors = {}
     if (name.trim().length < 2) next.name = "Please tell us your full name."
-    if (phone.replace(/[^0-9]/g, "").length < 7)
+    if (!isPhone(phone))
       next.phone = "Please enter a phone number we can reach you on."
     if (email.trim() && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim()))
       next.email = "That email address does not look right."
@@ -127,6 +144,11 @@ export default function Rsvp() {
       })
       const data = await response.json().catch(() => ({ ok: false }))
       const ok = response.ok && data.ok
+
+      // A guest we already have down is still the same guest.
+      if (ok || data.duplicate) {
+        rememberGuest({ name: name.trim(), phone: phone.trim(), email: email.trim() })
+      }
 
       if (ok && intent === "access") {
         const href = whatsappHref({

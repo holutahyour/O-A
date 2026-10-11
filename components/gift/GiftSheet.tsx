@@ -13,6 +13,7 @@ import {
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion"
 import { wedding, hasBankDetails } from "@/data/wedding"
 import { groupAccountNumber, naira } from "@/lib/format"
+import { isPhone, recallGuest, rememberGuest } from "@/lib/guest"
 import { record } from "@/lib/record"
 import CopyRow from "./CopyRow"
 import Ornament from "@/components/motion/Ornament"
@@ -26,7 +27,8 @@ import Ornament from "@/components/motion/Ornament"
  *
  * There is no payment processor. The site's job is to hand over an account
  * number cleanly and then get out of the way. The one thing it keeps is the
- * name, and the amount if given, of a guest who says they have sent a gift -
+ * name and phone, and the amount if given, of a guest who says they have sent
+ * a gift -
  * noted in the couple's sheet so they have a list to check against the bank.
  */
 
@@ -130,15 +132,24 @@ function Sheet({
   panelRef: React.RefObject<HTMLDivElement | null>
   reduced: boolean
 }) {
-  const [name, setName] = useState("")
+  // The sheet only ever opens in the browser, on a tap, so it can start from
+  // what the guest has already told the RSVP or the headwear request.
+  const [name, setName] = useState(() => recallGuest().name ?? "")
+  const [phone, setPhone] = useState(() => recallGuest().phone ?? "")
   const [amount, setAmount] = useState("")
 
   const names = `${wedding.couple.first} and ${wedding.couple.second}`
   const giver = name.trim()
+  const line = phone.trim()
   const sum = Number(amount.replace(/[^0-9]/g, "")) || null
-  const ready = giver.length >= 2
+  const ready = giver.length >= 2 && isPhone(phone)
 
-  const message = `Hello! I have just sent a gift${sum ? ` of ${naira(sum)}` : ""} to bless ${names}. My name is ${giver}.`
+  const message = `Hello! I have just sent a gift${sum ? ` of ${naira(sum)}` : ""} to bless ${names}. My name is ${giver} and my phone number is ${line}.`
+
+  function note() {
+    rememberGuest({ name: giver, phone: line })
+    record({ type: "gift", name: giver, phone: line, amount: sum })
+  }
   const whatsapp = `https://wa.me/${wedding.bank.contact.number}?text=${encodeURIComponent(message)}`
 
   return (
@@ -265,7 +276,7 @@ function Sheet({
           <>
             {/* ── Telling the couple ─────────────────────────────────────────── */}
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
-              <div>
+              <div className="sm:col-span-2">
                 <label htmlFor="gift-name" className="eyebrow mb-2 block">
                   Your name
                 </label>
@@ -275,6 +286,20 @@ function Sheet({
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   autoComplete="name"
+                  className={FIELD}
+                />
+              </div>
+              <div>
+                <label htmlFor="gift-phone" className="eyebrow mb-2 block">
+                  Phone number
+                </label>
+                <input
+                  id="gift-phone"
+                  type="tel"
+                  inputMode="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  autoComplete="tel"
                   className={FIELD}
                 />
               </div>
@@ -296,7 +321,7 @@ function Sheet({
 
             <a
               href={ready ? whatsapp : undefined}
-              onClick={ready ? () => record({ type: "gift", name: giver, amount: sum }) : undefined}
+              onClick={ready ? note : undefined}
               target="_blank"
               rel="noopener noreferrer"
               aria-disabled={!ready}
@@ -312,7 +337,7 @@ function Sheet({
             <p className="mt-2 text-center text-[13px] text-muted">
               {ready
                 ? `This opens WhatsApp so ${wedding.couple.first} knows your gift arrived.`
-                : `Add your name, then tell ${wedding.couple.first} your gift is on its way.`}
+                : `Add your name and phone number, then tell ${wedding.couple.first} your gift is on its way.`}
             </p>
 
             {/* ── The notice that costs one sentence and saves a lot ─────────── */}
