@@ -21,7 +21,7 @@ export default function Page() {
       <Story />
       <TheDay />
       <Details />
-      //<Headwear />
+      {/* <Headwear /> */}
       <Gallery />
       <Stay />
       <Bless />
