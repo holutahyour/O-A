@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useState, type FormEvent } from "react"
+import { useEffect, useRef, useState, type FormEvent } from "react"
 import { wedding } from "@/data/wedding"
 import { dayAndMonth } from "@/lib/format"
 import Bloom from "@/components/motion/Bloom"
@@ -76,6 +76,16 @@ export default function Rsvp() {
   /** Set only when the guest asked for the card, and only once we have saved. */
   const [waHref, setWaHref] = useState<string | null>(null)
 
+  /**
+   * The thank-you note is far shorter than the form it replaces. The guest was
+   * at the bottom of the form when they pressed send, so without this the page
+   * closes up under them and they are left looking at the next section.
+   */
+  const thanksRef = useRef<HTMLElement>(null)
+  useEffect(() => {
+    if (status === "sent") thanksRef.current?.scrollIntoView({ block: "start" })
+  }, [status])
+
   function choose(intent: Intent) {
     intentRef.current = intent
     setPressed(intent)
@@ -140,7 +150,7 @@ export default function Rsvp() {
 
   if (status === "sent") {
     return (
-      <section id="rsvp" className="section bg-blush-50">
+      <section ref={thanksRef} id="rsvp" className="section bg-blush-50">
         <div className="shell max-w-xl text-center">
           <Bloom>
             <p className="eyebrow">Thank you</p>
