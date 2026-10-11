@@ -4,9 +4,6 @@ The website for the engagement ceremony of Oluwabunmi Adedayo and Anuoluwapo
 Akintoye — Saturday, 5 December 2026, 12 noon, Luxury Party Event Centre,
 M.K.O Abiola Gardens Road, Ikeja, Lagos.
 
-> This is one of several sites in this repository, each in its own folder.
-> See the [README at the root](../README.md) for the others.
-
 ## Running it
 
 This project uses **pnpm**. If you do not have it: `npm install -g pnpm`.
@@ -22,7 +19,7 @@ pnpm images          # prepare the photographs (see below)
 
 > **Two notes on this folder's name.**
 >
-> The `&` in `A&O` breaks the Windows command shims that **npm** and **npx** use —
+> The `&` in `O&A` breaks the Windows command shims that **npm** and **npx** use —
 > `npm run build` fails here with a confusing "not recognized as an internal or
 > external command" error. **pnpm handles it correctly**, which is one practical
 > reason to stay on pnpm in this folder. If you ever need to fall back to npm,
