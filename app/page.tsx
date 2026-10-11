@@ -4,6 +4,7 @@ import Invitation from "@/components/sections/Invitation"
 import Story from "@/components/sections/Story"
 import TheDay from "@/components/sections/TheDay"
 import Details from "@/components/sections/Details"
+import Headwear from "@/components/sections/Headwear"
 import Gallery from "@/components/sections/Gallery"
 import Stay from "@/components/sections/Stay"
 import Bless from "@/components/sections/Bless"
@@ -20,6 +21,7 @@ export default function Page() {
       <Story />
       <TheDay />
       <Details />
+      <Headwear />
       <Gallery />
       <Stay />
       <Bless />

@@ -33,6 +33,14 @@ export type Hotel = {
   mapsUrl: string
 }
 
+export type Headwear = {
+  id: string
+  name: string
+  note: string
+  /** In naira. */
+  price: number
+}
+
 export type Faq = { q: string; a: string }
 
 export type InternationalAccount = {
@@ -56,8 +64,8 @@ export const wedding = {
     firstFull: "Oluwabunmi Adedayo",
     secondFull: "Anuoluwapo Akintoye",
     monogram: "OA",
-    // TODO(couple): add the hashtag if there is one. Null hides it everywhere.
-    hashtag: null as string | null,
+    /** Written as the couple gave it. Null hides it everywhere. */
+    hashtag: "#ForeverwiththeEni’s 2026" as string | null,
   },
 
   /** What the families are inviting guests to, as printed on the card. */
@@ -94,12 +102,13 @@ export const wedding = {
   /* ── Reaching the hosts ─────────────────────────────────────────────────── */
   rsvpPhones: [
     { name: "Timilehin", display: "+234 809 437 7809", tel: "+2348094377809" },
-    { name: "Biola", display: "+234 916 292 8730", tel: "+2349162928730" },
+    { name: "Moni", display: "+234 816 462 9996", tel: "+2348164629996" },
   ],
 
   /**
-   * The line invitation requests are sent to on WhatsApp. Digits only,
-   * country code first and no plus sign, exactly as wa.me expects.
+   * The primary line: invitation requests and gele and fila requests are sent
+   * here on WhatsApp. Digits only, country code first and no plus sign,
+   * exactly as wa.me expects.
    */
   // TODO(couple): confirm this number is on WhatsApp.
   whatsapp: {
@@ -110,14 +119,33 @@ export const wedding = {
   /* ── Colour of the day, straight off the card ───────────────────────────── */
   colours: [{ name: "Onion Pink", hex: "#C77FA2" }],
 
+  /* ── Gele and fila ──────────────────────────────────────────────────────── */
+  // Guests pick how many they want and the request goes to the primary line
+  // above on WhatsApp. Prices are in naira. An empty list hides the section.
+  headwear: [
+    { id: "gele", name: "Gele", note: "The head tie, for the ladies.", price: 15000 },
+    { id: "fila", name: "Fila", note: "The cap, for the gentlemen.", price: 5000 },
+  ] as Headwear[],
+
   /* ── Bless the couple ───────────────────────────────────────────────────── */
-  // TODO(couple): fill in all three. While any is empty the sheet shows a
+  // The bride's own account. While any of the three is empty the sheet shows a
   // "details coming soon" notice with the RSVP numbers, never a half-filled
   // account block.
   bank: {
-    accountName: "",
-    bankName: "",
-    accountNumber: "",
+    accountName: "Simm - Afeni Oluwabunmi Adedayo",
+    bankName: "United Bank For Africa",
+    accountNumber: "6202202787",
+
+    /**
+     * The bride's line. "I have sent my gift" opens a WhatsApp chat with it,
+     * and it is the number guests are told to call to confirm the account.
+     */
+    // TODO(couple): confirm this number is on WhatsApp.
+    contact: {
+      number: "2348070593932",
+      display: "+234 807 059 3932",
+      tel: "+2348070593932",
+    },
 
     /**
      * Optional second account for guests sending from abroad.

@@ -80,7 +80,7 @@ export default function Hero() {
           {/* Pink is an accent, never a text colour - it fails contrast on
               ivory. The hashtag is information, so it gets plum. */}
           {wedding.couple.hashtag && (
-            <motion.p {...rise(5)} className="eyebrow mt-3 text-wine/75">
+            <motion.p {...rise(5)} className="eyebrow mt-3 text-[14px] normal-case tracking-[0.08em] text-wine/75">
               {wedding.couple.hashtag}
             </motion.p>
           )}

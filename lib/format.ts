@@ -45,6 +45,11 @@ export function dateParts(iso: string): { day: string; month: string; year: stri
   return { day: get("day"), month: get("month"), year: get("year") }
 }
 
+/** 15000 -> "₦15,000" */
+export function naira(amount: number): string {
+  return `₦${amount.toLocaleString("en-NG")}`
+}
+
 /**
  * Account numbers are read aloud and typed by hand, often by someone holding a
  * phone in one hand. Grouping them in threes makes that meaningfully easier.

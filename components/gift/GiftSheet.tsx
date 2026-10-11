@@ -126,7 +126,7 @@ function Sheet({
 }) {
   const names = `${wedding.couple.first} and ${wedding.couple.second}`
   const message = `Hello! I have just sent a gift to bless ${names}. My name is `
-  const whatsapp = `https://wa.me/${wedding.whatsapp.number}?text=${encodeURIComponent(message)}`
+  const whatsapp = `https://wa.me/${wedding.bank.contact.number}?text=${encodeURIComponent(message)}`
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
@@ -263,7 +263,7 @@ function Sheet({
               I have sent my gift
             </a>
             <p className="mt-2 text-center text-[13px] text-muted">
-              This opens WhatsApp so the family know your gift arrived.
+              This opens WhatsApp so {wedding.couple.first} knows your gift arrived.
             </p>
 
             {/* ── The notice that costs one sentence and saves a lot ─────────── */}
@@ -285,13 +285,13 @@ function Sheet({
                 />
               </svg>
               <p className="text-[13px] leading-relaxed text-ink">
-                These are the only accounts for this celebration. If anyone sends you different
+                This is the only account for this celebration. If anyone sends you different
                 details, please call{" "}
                 <a
-                  href={`tel:${wedding.rsvpPhones[0].tel}`}
+                  href={`tel:${wedding.bank.contact.tel}`}
                   className="tabular font-medium text-wine underline decoration-gold/50 underline-offset-2"
                 >
-                  {wedding.rsvpPhones[0].display}
+                  {wedding.bank.contact.display}
                 </a>{" "}
                 to confirm before sending anything.
               </p>

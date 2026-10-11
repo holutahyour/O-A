@@ -36,7 +36,7 @@ export default function Footer() {
         <Ornament width={44} tone="ivory" className="mt-7" />
 
         {wedding.couple.hashtag && (
-          <p className="eyebrow mt-7 text-champagne">{wedding.couple.hashtag}</p>
+          <p className="eyebrow mt-7 text-[14px] normal-case tracking-[0.08em] text-champagne">{wedding.couple.hashtag}</p>
         )}
 
         <div className="mt-8 flex flex-wrap items-center justify-center gap-x-8 gap-y-3">

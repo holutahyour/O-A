@@ -47,12 +47,10 @@ Anything still marked `TODO(couple)` needs real information:
 
 | What | Where |
 |---|---|
-| Bank account name, bank, and number | `bank` |
 | The couple's portrait and photographs | `portrait`, `gallery` |
 | Exact Google Maps pin for the hall | `venue.mapsUrl` |
-| Confirm the WhatsApp number | `whatsapp` |
+| Confirm both WhatsApp numbers | `whatsapp`, `bank.contact` |
 | Confirm the hotel list, and any reserved rooms | `hotels` |
-| A hashtag, if there is one | `couple.hashtag` |
 | Google Apps Script URL for RSVP | `.env.local` — see [docs/APPS-SCRIPT.md](docs/APPS-SCRIPT.md) |
 
 The site works today with all of these unset. The "bless the couple" sheet shows
