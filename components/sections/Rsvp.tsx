@@ -362,7 +362,7 @@ export default function Rsvp() {
             {/* One set of details, two intents. Both buttons submit the same
                 form; "Send and request access" additionally opens WhatsApp so
                 the couple can send the invitation card back personally. */}
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-3">
               <button
                 type="submit"
                 onClick={() => choose("rsvp")}
@@ -372,6 +372,9 @@ export default function Rsvp() {
                 {status === "sending" && pressed === "rsvp" ? "Sending…" : "Send RSVP"}
               </button>
 
+              {/* Switched off for now. To bring it back, uncomment this button
+                  and the note under the grid, and put sm:grid-cols-2 back on
+                  the grid.
               <button
                 type="submit"
                 onClick={() => choose("access")}
@@ -387,13 +390,16 @@ export default function Rsvp() {
                   </>
                 )}
               </button>
+              */}
             </div>
 
+            {/*
             <p className="text-center text-[13px] leading-relaxed text-muted">
               Send and request access passes your details through, then opens WhatsApp with
               your request already written, so we can send you the invitation card
               ourselves.
             </p>
+            */}
           </form>
         </Bloom>
 

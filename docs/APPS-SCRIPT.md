@@ -41,8 +41,8 @@ function reply(body) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
-// The Gifts and Headwear tabs are made, with their headers, the first time
-// something is recorded in them.
+// A tab that is missing is made, with its headers, the first time something
+// is recorded in it.
 function tab(name, headers) {
   var book = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = book.getSheetByName(name);
@@ -76,7 +76,7 @@ function doPost(e) {
       return reply({ ok: true });
     }
 
-    var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('RSVPs');
+    var sheet = tab('RSVPs', ['Submitted at', 'Name', 'Phone', 'Email', 'Attending', 'Message', 'Requested card']);
 
     var phone = phoneKey(data.phone || '');
     var email = emailKey(data.email || '');
